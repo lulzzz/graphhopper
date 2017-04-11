@@ -2,6 +2,7 @@ package com.graphhopper;
 
 import com.graphhopper.reader.gtfs.GraphHopperGtfs;
 import com.graphhopper.util.Helper;
+import com.graphhopper.util.Parameters;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class BartIT {
                 FROM_LAT, FROM_LON,
                 TO_LAT, TO_LON
         );
-        request.getHints().put(GraphHopperGtfs.EARLIEST_DEPARTURE_TIME_HINT, LocalDateTime.of(2017,3,28,13,1).toString());
+        request.getHints().put(Parameters.PT.EARLIEST_DEPARTURE_TIME_HINT, LocalDateTime.of(2017,3,28,13,1).toString());
         GHResponse response = graphHopper.route(request);
         assertEquals("Paid expected fare", 105, response.getBest().getFare().multiply(BigDecimal.valueOf(100)).intValue());
     }

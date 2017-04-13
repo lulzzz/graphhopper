@@ -11,6 +11,7 @@ import com.graphhopper.reader.osm.OSMReader;
 import com.graphhopper.routing.InstructionsFromEdges;
 import com.graphhopper.routing.QueryGraph;
 import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.*;
 import com.graphhopper.storage.index.LocationIndex;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -100,14 +102,22 @@ public final class GraphHopperGtfs implements GraphHopperAPI {
         private final QueryGraph queryGraph = new QueryGraph(graphHopperStorage);
 
         RequestHandler(GHRequest request) {
-            maxVisitedNodesForRequest = request.getHints().getInt(Parameters.Routing.MAX_VISITED_NODES, Integer.MAX_VALUE);
-            initialTime = Duration.between(gtfsStorage.getStartDate().atStartOfDay(), LocalDateTime.parse(request.getHints().get(EARLIEST_DEPARTURE_TIME_HINT, "earliestDepartureTime is a required parameter"))).getSeconds();
-            rangeQueryEndTime = request.getHints().has(RANGE_QUERY_END_TIME) ? Duration.between(gtfsStorage.getStartDate().atStartOfDay(), LocalDateTime.parse(request.getHints().get(RANGE_QUERY_END_TIME, ""))).getSeconds() : initialTime;
-            arriveBy = request.getHints().getBool(ARRIVE_BY, false);
-            ignoreTransfers = request.getHints().getBool(IGNORE_TRANSFERS, false);
-            walkSpeedKmH = request.getHints().getDouble(WALK_SPEED_KM_H, 5.0);
-            maxWalkDistancePerLeg = request.getHints().getDouble(MAX_WALK_DISTANCE_PER_LEG, Double.MAX_VALUE);
-            maxTransferDistancePerLeg = request.getHints().getDouble(MAX_TRANSFER_DISTANCE_PER_LEG, Double.MAX_VALUE);
+            final HintsMap hintsMap = request.getHints();
+            final Map<String, String> map = hintsMap.toMap();
+            maxVisitedNodesForRequest = hintsMap.getInt(Parameters.Routing.MAX_VISITED_NODES, Integer.MAX_VALUE);
+            final String departureTimeString = map.get(EARLIEST_DEPARTURE_TIME_HINT);
+            try {
+                final LocalDateTime earliestDepartureTime = LocalDateTime.parse(departureTimeString);
+                initialTime = Duration.between(gtfsStorage.getStartDate().atStartOfDay(), earliestDepartureTime).getSeconds();
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException(String.format("Illegal value for required parameter %s: %s", EARLIEST_DEPARTURE_TIME_HINT, departureTimeString));
+            }
+            rangeQueryEndTime = hintsMap.has(RANGE_QUERY_END_TIME) ? Duration.between(gtfsStorage.getStartDate().atStartOfDay(), LocalDateTime.parse(hintsMap.get(RANGE_QUERY_END_TIME, ""))).getSeconds() : initialTime;
+            arriveBy = hintsMap.getBool(ARRIVE_BY, false);
+            ignoreTransfers = hintsMap.getBool(IGNORE_TRANSFERS, false);
+            walkSpeedKmH = hintsMap.getDouble(WALK_SPEED_KM_H, 5.0);
+            maxWalkDistancePerLeg = hintsMap.getDouble(MAX_WALK_DISTANCE_PER_LEG, Double.MAX_VALUE);
+            maxTransferDistancePerLeg = hintsMap.getDouble(MAX_TRANSFER_DISTANCE_PER_LEG, Double.MAX_VALUE);
             weighting = createPtTravelTimeWeighting(flagEncoder, arriveBy, walkSpeedKmH);
             translation = translationMap.getWithFallBack(request.getLocale());
             if (request.getPoints().size() != 2) {

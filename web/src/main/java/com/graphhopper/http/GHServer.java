@@ -133,7 +133,9 @@ public class GHServer {
                                 @Override
                                 public void init(FilterConfig filterConfig) throws ServletException {}
                                 @Override
-                                public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {}
+                                public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+                                    chain.doFilter(request, response);
+                                }
                                 @Override
                                 public void destroy() {
                                     graphHopperStorage.get().close();
@@ -152,7 +154,9 @@ public class GHServer {
                                 @Override
                                 public void init(FilterConfig filterConfig) throws ServletException {}
                                 @Override
-                                public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {}
+                                public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+                                    chain.doFilter(request, response);
+                                }
                                 @Override
                                 public void destroy() {
                                     graphHopper.get().close();
